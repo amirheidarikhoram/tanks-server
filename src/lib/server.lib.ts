@@ -1,8 +1,15 @@
-import { FireAction, GameAction, PlayerAction } from "src/ts";
+import {
+    Action,
+    FireAction,
+    GameAction,
+    ExchangeServerInfoResponse,
+    PlayerAction,
+    World,
+} from "src/ts";
 import { WebSocketServer } from "ws";
-import { World } from "./world.lib";
+import { WorldInstance } from "./world.lib";
 
-export const Server = (port: number, world: World) => {
+export const Server = (port: number, world: WorldInstance) => {
     const wss = new WebSocketServer({
         port,
     });
@@ -11,22 +18,41 @@ export const Server = (port: number, world: World) => {
         ws.on("error", console.error);
 
         ws.on("message", function message(data) {
-            data = JSON.parse(data.toString());
+            const _data = JSON.parse(data.toString()) as Action;
 
-            if ("g_type" in data) {
-                const parsedData = data as unknown as GameAction;
-
-                switch (parsedData.g_type) {
+            if ("g_type" in _data) {
+                switch (_data.g_type) {
                     case "player_join":
-                        world.AddPlayer(parsedData.player, ws);
+                        world.AddPlayer(_data.player, ws);
                         break;
                 }
-            } else if ("type" in data) {
-                const parsedData = data as unknown as PlayerAction;
-
-                switch (parsedData.type) {
+            } else if ("type" in _data) {
+                switch (_data.type) {
                     case "fire":
-                        world.FireRequest(parsedData as FireAction);
+                        world.FireRequest(_data as FireAction);
+                        break;
+
+                    case "move":
+                        world.HandlePlayerMove(_data);
+                        break;
+                }
+            } else if ("s_type" in _data) {
+                switch (_data.s_type) {
+                    case "exchange_server_info":
+                        world.AddWorldInfo(_data.world, ws);
+
+                        ws.send(
+                            JSON.stringify({
+                                s_type: "exchange_server_info_response",
+                                world: {
+                                    ...world.GetInfo(),
+                                    address: `ws://localhost:${port}`,
+                                } as World,
+                            } as ExchangeServerInfoResponse)
+                        );
+                        break;
+
+                    default:
                         break;
                 }
             }

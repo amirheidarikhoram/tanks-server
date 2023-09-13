@@ -2,6 +2,18 @@
 # yarn lockfile v1
 
 
+"@flatten-js/core@^1.4.3":
+  version "1.4.3"
+  resolved "https://registry.yarnpkg.com/@flatten-js/core/-/core-1.4.3.tgz#4c1ef15bcb42cefea5e34d94567e709d76df5f06"
+  integrity sha512-9wpxvDGHWgJ37xZFMXw5idNYBFj3+YJoDyaqRKiS93tWUmVAvX3DAnVPk3hVlk4SNqVnbWTJFyZXZ+42q38U4Q==
+  dependencies:
+    "@flatten-js/interval-tree" "^1.0.21"
+
+"@flatten-js/interval-tree@^1.0.21":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@flatten-js/interval-tree/-/interval-tree-1.1.0.tgz#95f1345d5efad8b1c53f129c0e92f569a1ee64a5"
+  integrity sha512-D0AC+3g66Mh/QUuAMcfLORgy8u3dO9T2UTpXCx/yH5ShMb+lr99orxExoCtN+lLK/HmrTJNnkhAjYvfnIry46g==
+
 "@mole-inc/bin-wrapper@^8.0.1":
   version "8.0.1"
   resolved "https://registry.yarnpkg.com/@mole-inc/bin-wrapper/-/bin-wrapper-8.0.1.tgz#d7fd0ceb1cfa8a855293a3ed9d7d135f4d442f0e"

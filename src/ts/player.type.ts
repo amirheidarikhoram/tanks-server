@@ -7,5 +7,6 @@ export type Player = {
         position: Position2D;
         rotation: Rotation3D;
     };
+    turretRotation: Rotation3D;
     lastFireTS: number;
 };

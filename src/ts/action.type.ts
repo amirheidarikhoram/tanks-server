@@ -1,29 +1,28 @@
 import { Player } from "./player.type";
 import { Direction2D, Position2D, Rotation3D } from "./transform.type";
+import { World } from "./world.type";
 
-export interface PlayerAction {
+export interface BasePlayerAction {
     playerId: string;
-    type: "fire" | "fire_response" | "move";
 }
 
-export interface FireAction extends PlayerAction {
+export interface FireAction extends BasePlayerAction {
     type: "fire";
     firePosition: Position2D;
     fireDirection: Direction2D;
 }
 
-export interface FireActionResponse extends PlayerAction {
+export interface FireActionResponse extends BasePlayerAction {
     type: "fire_response";
     didHit: true;
     hitPlayer?: Player;
     hitPosition?: Position2D;
 }
 
-export interface MoveAction extends PlayerAction {
+export interface MoveAction extends BasePlayerAction, Partial<Pick<Player, "transform" | "turretRotation">> {
     type: "move";
-    position?: Position2D;
-    rotation?: Rotation3D;
 }
+export type PlayerAction = FireAction | FireActionResponse | MoveAction;
 
 export interface JoinWorld {
     g_type: "player_join";
@@ -47,4 +46,28 @@ export interface PlayerStateUpdate {
     player: Player;
 }
 
-export type GameAction = JoinWorld | ValidatePlayerState | ValidatePlayerState | PlayerStateUpdate;
+export interface CloseWorldsUpdate {
+    g_type: "close_worlds_update";
+    worlds: World[];
+}
+
+export type GameAction =
+    | JoinWorld
+    | ValidatePlayerState
+    | ValidatePlayerState
+    | PlayerStateUpdate
+    | CloseWorldsUpdate;
+
+export interface ExchangeServerInfo {
+    s_type: "exchange_server_info";
+    world: World;
+}
+
+export interface ExchangeServerInfoResponse {
+    s_type: "exchange_server_info_response";
+    world: World;
+}
+
+export type ServerAction = ExchangeServerInfo | ExchangeServerInfoResponse;
+
+export type Action = GameAction | PlayerAction | ServerAction;
