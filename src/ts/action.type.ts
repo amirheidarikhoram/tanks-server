@@ -19,7 +19,9 @@ export interface FireActionResponse extends BasePlayerAction {
     hitPosition?: Position2D;
 }
 
-export interface MoveAction extends BasePlayerAction, Partial<Pick<Player, "transform" | "turretRotation">> {
+export interface MoveAction
+    extends BasePlayerAction,
+        Partial<Pick<Player, "transform" | "turretRotation">> {
     type: "move";
 }
 export type PlayerAction = FireAction | FireActionResponse | MoveAction;
@@ -57,6 +59,11 @@ export type GameAction =
     | ValidatePlayerState
     | PlayerStateUpdate
     | CloseWorldsUpdate;
+
+export interface IntroduceServer {
+    s_type: "introduce_server";
+    world: World;
+}
 
 export interface ExchangeServerInfo {
     s_type: "exchange_server_info";

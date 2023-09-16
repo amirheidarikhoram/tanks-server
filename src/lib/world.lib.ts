@@ -3,6 +3,7 @@ import {
     FireAction,
     FireActionResponse,
     GameAction,
+    IntroduceServer,
     MoveAction,
     PlayerAction,
     PlayerStateUpdate,
@@ -74,6 +75,13 @@ class WorldInstance {
         });
 
         console.log("PLayer Added");
+
+        ws.send(
+            JSON.stringify({
+                s_type: "introduce_server",
+                world: this.GetInfo(),
+            } as IntroduceServer)
+        );
     }
 
     HandlePlayerMove(action: MoveAction) {
