@@ -14,7 +14,7 @@ import { Player } from "src/ts/player.type";
 import { ActionError } from "./error.lib";
 import { v4 as uuid4 } from "uuid";
 import { WebSocket } from "ws";
-import { pointToWorld } from "./distance.lib";
+import { isInWorld, pointToWorld } from "./geometry.lib";
 
 class WorldInstance {
     players: {
@@ -55,15 +55,29 @@ class WorldInstance {
     }
 
     AddPlayer(player: Player, ws: WebSocket) {
+        if (this.players[player.id]) {
+            console.log("We already have that player");
+            return;
+        }
+
         this.players[player.id] = {
             player,
             ws,
             candidateWorlds: [],
         };
+
+        this.players[player.id].ws.on("close", () => {
+            if (this.players[player.id]) {
+                console.log("Player disconnected");
+                delete this.players[player.id];
+            }
+        });
+
+        console.log("PLayer Added");
     }
 
     HandlePlayerMove(action: MoveAction) {
-        const player = this.players[action.playerId].player;
+        const player = this.players[action.playerId]?.player;
 
         if (!player) {
             return ActionError("Player not found");
@@ -88,7 +102,7 @@ class WorldInstance {
             g_type: "player_state_update",
         } as PlayerStateUpdate);
 
-        {
+        if (this.CheckIfPlayerInWorld(player)) {
             const closeWorlds = this.CheckIfCloseToAnyWorld(player);
 
             const newWorldIds = closeWorlds.map((w) => w.id);
@@ -99,8 +113,6 @@ class WorldInstance {
                 ...newWorldIds.filter((element) => !previousWorlIds.includes(element)),
                 ...previousWorlIds.filter((element) => !newWorldIds.includes(element))
             );
-
-            console.log(difference, closeWorlds)
 
             if (difference.length > 0) {
                 this.players[action.playerId].candidateWorlds = closeWorlds;
@@ -205,7 +217,13 @@ class WorldInstance {
             return distance !== -1 && distance < 5;
         });
 
+        worlds.push(this.GetInfo());
+
         return worlds;
+    }
+
+    CheckIfPlayerInWorld(player: Player) {
+        return isInWorld(player.transform.position, this.GetInfo());
     }
 }
 

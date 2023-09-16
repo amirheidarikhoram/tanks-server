@@ -46,7 +46,7 @@ export const Server = (port: number, world: WorldInstance) => {
                                 s_type: "exchange_server_info_response",
                                 world: {
                                     ...world.GetInfo(),
-                                    address: `ws://localhost:${port}`,
+                                    address: `ws://127.0.0.1:${port}`,
                                 } as World,
                             } as ExchangeServerInfoResponse)
                         );
