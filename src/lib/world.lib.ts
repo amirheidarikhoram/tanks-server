@@ -15,7 +15,7 @@ import { Player } from "src/ts/player.type";
 import { ActionError } from "./error.lib";
 import { v4 as uuid4 } from "uuid";
 import { WebSocket } from "ws";
-import { isInWorld, pointToWorld } from "./geometry.lib";
+import { bulletHitsPlayers, isInWorld, pointToWorld } from "./geometry.lib";
 
 class WorldInstance {
     players: {
@@ -40,7 +40,23 @@ class WorldInstance {
         private southeast: Position2D,
         private address: string,
         private id = uuid4()
-    ) {}
+    ) {
+        this.players["2"] = {
+            candidateWorlds: [],
+            player: {
+                hp: 100,
+                id: "2",
+                isControlled: false,
+                lastFireTS: 0,
+                transform: {
+                    position: [16, 5.5],
+                    rotation: [0, 0, 0],
+                },
+                turretRotation: [0, 0, 0],
+            },
+            ws: null,
+        };
+    }
 
     Broadcast(action: GameAction) {
         this.broadcastHandler(
@@ -133,19 +149,21 @@ class WorldInstance {
     }
 
     FireRequest(action: FireAction) {
-        console.log("Fire Action", action);
+        const hitPointPlayer = bulletHitsPlayers(
+            action.firePosition,
+            action.fireDirection,
+            Object.values(this.players)
+                .map((p) => p.player)
+                .filter((p) => p.id !== action.playerId)
+        );
 
-        // mathematically check if it hits any
-
-        const hits = false;
-
-        if (hits) {
+        if (hitPointPlayer) {
             const message: FireActionResponse = {
                 type: "fire_response",
                 didHit: true,
                 playerId: action.playerId,
-                hitPlayer: {} as Player, // TODO: the player
-                hitPosition: [0, 0], // TODO: the hit position
+                hitPlayer: hitPointPlayer.player as Player,
+                hitPosition: hitPointPlayer.point,
             };
 
             this.SendActionCreator(action, message);

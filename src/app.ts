@@ -21,8 +21,8 @@ args.option("port", "Listening port.")
     .command("run", "run server", (name, sub, options) => {
         const _options = { ...options } as unknown as Options;
 
-        const northwest = _options.northwest.split("-").map((v) => parseInt(v)) as Position2D;
-        const southeast = _options.southeast.split("-").map((v) => parseInt(v)) as Position2D;
+        const northwest = _options.northwest.split(",").map((v) => parseInt(v)) as Position2D;
+        const southeast = _options.southeast.split(",").map((v) => parseInt(v)) as Position2D;
 
         const port = parseInt(_options.port);
         const worlds = (_options.worlds ?? []).filter(matchGameServerAddress);

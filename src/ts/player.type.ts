@@ -9,4 +9,5 @@ export type Player = {
     };
     turretRotation: Rotation3D;
     lastFireTS: number;
+    isControlled: boolean;
 };
