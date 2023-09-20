@@ -52,6 +52,14 @@ export const Server = (port: number, world: WorldInstance) => {
                         );
                         break;
 
+                    case "fire_propagate":
+                        world.HandleFirePropagate(_data);
+                        break;
+
+                    case "fire_propagate_response":
+                        world.HandleFirePropagateResponse(_data);
+                        break;
+
                     default:
                         break;
                 }

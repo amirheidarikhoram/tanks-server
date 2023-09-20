@@ -75,6 +75,25 @@ export interface ExchangeServerInfoResponse {
     world: World;
 }
 
-export type ServerAction = ExchangeServerInfo | ExchangeServerInfoResponse;
+export interface FireActionPropagate {
+    s_type: "fire_propagate";
+    propagationId: string;
+    action: FireAction;
+    worldId: World["id"];
+}
+
+export interface FireActionPropagateResponse {
+    s_type: "fire_propagate_response";
+    propagationId: string;
+    actionReponse: FireActionResponse;
+    worldId: World["id"];
+}
+
+export type ServerAction =
+    | IntroduceServer
+    | ExchangeServerInfo
+    | ExchangeServerInfoResponse
+    | FireActionPropagate
+    | FireActionPropagateResponse;
 
 export type Action = GameAction | PlayerAction | ServerAction;

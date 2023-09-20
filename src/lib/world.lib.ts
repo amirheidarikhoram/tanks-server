@@ -1,6 +1,9 @@
 import {
+    Action,
     CloseWorldsUpdate,
     FireAction,
+    FireActionPropagate,
+    FireActionPropagateResponse,
     FireActionResponse,
     GameAction,
     IntroduceServer,
@@ -30,6 +33,17 @@ class WorldInstance {
         [key: World["id"]]: {
             world: World;
             ws: WebSocket;
+        };
+    } = {};
+
+    localPropagatedFireActions: {
+        [key: string]: {
+            action: FireAction;
+        };
+    } = {};
+    propagatedFireActionsDictionary: {
+        [key: string]: {
+            from: World["address"];
         };
     } = {};
 
@@ -148,7 +162,7 @@ class WorldInstance {
         }
     }
 
-    FireRequest(action: FireAction) {
+    LocalFireRequest(action: FireAction): FireActionResponse | null {
         const hitPointPlayer = bulletHitsPlayers(
             action.firePosition,
             action.fireDirection,
@@ -158,17 +172,91 @@ class WorldInstance {
         );
 
         if (hitPointPlayer) {
-            const message: FireActionResponse = {
+            return {
                 type: "fire_response",
                 didHit: true,
                 playerId: action.playerId,
                 hitPlayer: hitPointPlayer.player as Player,
                 hitPosition: hitPointPlayer.point,
             };
+        }
 
-            this.SendActionCreator(action, message);
+        return null;
+    }
+
+    FireRequest(action: FireAction) {
+        const fireResponse = this.LocalFireRequest(action);
+
+        if (fireResponse) {
+            this.SendActionCreator(action, fireResponse);
         } else {
-            // asl neighbors
+            const propagateAction: FireActionPropagate = {
+                propagationId: uuid4(),
+                s_type: "fire_propagate",
+                action,
+                worldId: this.GetInfo().id,
+            };
+
+            this.localPropagatedFireActions[propagateAction.propagationId] = {
+                action: action,
+            };
+
+            this.BroadcastToWorlds(propagateAction);
+        }
+    }
+
+    HandleFirePropagate(action: FireActionPropagate) {
+        if (this.propagatedFireActionsDictionary[action.propagationId]) {
+            return;
+        }
+
+        const fireResponse = this.LocalFireRequest(action.action);
+
+        if (fireResponse) {
+            const firePropagateResponse: FireActionPropagateResponse = {
+                actionReponse: fireResponse,
+                propagationId: action.propagationId,
+                s_type: "fire_propagate_response",
+                worldId: this.id,
+            };
+
+            this.worlds[action.worldId]?.ws.send(JSON.stringify(firePropagateResponse));
+        } else {
+            this.propagatedFireActionsDictionary[action.propagationId] = {
+                from: action.worldId,
+            };
+
+            const newAction: FireActionPropagate = {
+                ...action,
+                worldId: this.id,
+            };
+
+            this.BroadcastToWorlds(newAction);
+        }
+    }
+
+    HandleFirePropagateResponse(action: FireActionPropagateResponse) {
+        // check if it is local
+        if (this.localPropagatedFireActions[action.propagationId]) {
+            const playerObject = this.players[action.actionReponse.playerId];
+
+            if (playerObject) {
+                playerObject.ws.send(JSON.stringify(action.actionReponse));
+            }
+        } else {
+            // check if we are sending the response to the correct server
+            if (this.propagatedFireActionsDictionary[action.propagationId]) {
+                // now we know to whom we must send the response
+                const targetWorldId =
+                    this.propagatedFireActionsDictionary[action.propagationId].from;
+
+                // check if are connected to the world
+                const worldObject = this.worlds[targetWorldId];
+
+                if (worldObject) {
+                    worldObject.ws.send(JSON.stringify(action));
+                }
+            }
         }
     }
 
@@ -191,7 +279,7 @@ class WorldInstance {
                 });
 
                 ws.on("message", function message(data) {
-                    const parsed = JSON.parse(data.toString());
+                    const parsed = JSON.parse(data.toString()) as Action;
 
                     if ("s_type" in parsed) {
                         const _data = { ...parsed } as ServerAction;
@@ -202,8 +290,14 @@ class WorldInstance {
                                     world: _data.world,
                                     ws: ws,
                                 };
+                                break;
 
-                                // console.log(serverRef.worlds);
+                            case "fire_propagate":
+                                serverRef.HandleFirePropagate(_data);
+                                break;
+
+                            case "fire_propagate_response":
+                                serverRef.HandleFirePropagateResponse(_data);
                                 break;
 
                             default:
@@ -250,6 +344,18 @@ class WorldInstance {
 
     CheckIfPlayerInWorld(player: Player) {
         return isInWorld(player.transform.position, this.GetInfo());
+    }
+
+    BroadcastToWorlds(action: Action, predicate?: (w: (typeof this.worlds)[string]) => boolean) {
+        let worldObjects = Object.values(this.worlds);
+
+        if (predicate) {
+            worldObjects.filter(predicate);
+        }
+
+        worldObjects.forEach(({ ws }) => {
+            ws.send(JSON.stringify(action));
+        });
     }
 }
 

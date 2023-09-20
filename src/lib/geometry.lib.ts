@@ -50,7 +50,7 @@ export const bulletHitsPlayers = (
     firePosition: Position2D,
     fireDirection: Direction2D,
     players: Player[]
-): HitPointPlayer | undefined => {
+): HitPointPlayer | null => {
     const firePoint = new Flatten.Point(...firePosition);
     const norm = [-1 * fireDirection[1], fireDirection[0]];
     const ray = new Flatten.Ray(new Flatten.Point(...firePosition), new Flatten.Vector(...norm));
@@ -100,5 +100,5 @@ export const bulletHitsPlayers = (
               player: hitPointPlayer.player,
               point: [hitPointPlayer.point.x, hitPointPlayer.point.y],
           }
-        : undefined;
+        : null;
 };
