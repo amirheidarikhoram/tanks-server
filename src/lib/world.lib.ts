@@ -106,6 +106,9 @@ class WorldInstance {
             JSON.stringify({
                 s_type: "introduce_server",
                 world: this.GetInfo(),
+                players: Object.values(this.players)
+                    .map((p) => p.player)
+                    .filter((p) => p.id !== _player.id),
             } as IntroduceServer)
         );
     }
@@ -131,10 +134,13 @@ class WorldInstance {
 
         this.players[action.playerId].player = player;
 
-        this.Broadcast({
-            player: player,
-            g_type: "player_state_update",
-        } as PlayerStateUpdate);
+        this.BroadcastToPlayers(
+            {
+                player: player,
+                g_type: "player_state_update",
+            } as PlayerStateUpdate,
+            ({ player: _p }) => _p.id !== player.id
+        );
 
         if (this.CheckIfPlayerInWorld(player)) {
             const closeWorlds = this.CheckIfCloseToAnyWorld(player);

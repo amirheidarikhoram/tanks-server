@@ -76,6 +76,7 @@ export type GameAction =
 export interface IntroduceServer {
     s_type: "introduce_server";
     world: World;
+    players: Player[];
 }
 
 export interface ExchangeServerInfo {
