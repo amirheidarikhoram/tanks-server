@@ -24,6 +24,7 @@ export interface MoveAction
         Partial<Pick<Player, "transform" | "turretRotation">> {
     type: "move";
 }
+
 export type PlayerAction = FireAction | FireActionResponse | MoveAction;
 
 export interface JoinWorld {
@@ -53,12 +54,24 @@ export interface CloseWorldsUpdate {
     worlds: World[];
 }
 
+export interface HitAction {
+    g_type: "hit";
+    fireActionResponse: FireActionResponse;
+}
+
+export interface DieAction {
+    g_type: "die";
+    playerId: string;
+}
+
 export type GameAction =
     | JoinWorld
     | ValidatePlayerState
     | ValidatePlayerState
     | PlayerStateUpdate
-    | CloseWorldsUpdate;
+    | CloseWorldsUpdate
+    | HitAction
+    | DieAction;
 
 export interface IntroduceServer {
     s_type: "introduce_server";

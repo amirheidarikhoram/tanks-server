@@ -1,12 +1,15 @@
 import {
     Action,
     CloseWorldsUpdate,
+    DieAction,
     FireAction,
     FireActionPropagate,
     FireActionPropagateResponse,
     FireActionResponse,
     GameAction,
+    HitAction,
     IntroduceServer,
+    JoinWorld,
     MoveAction,
     PlayerAction,
     PlayerStateUpdate,
@@ -54,23 +57,7 @@ class WorldInstance {
         private southeast: Position2D,
         private address: string,
         private id = uuid4()
-    ) {
-        this.players["2"] = {
-            candidateWorlds: [],
-            player: {
-                hp: 100,
-                id: "2",
-                isControlled: false,
-                lastFireTS: 0,
-                transform: {
-                    position: [16, 5.5],
-                    rotation: [0, 0, 0],
-                },
-                turretRotation: [0, 0, 0],
-            },
-            ws: null,
-        };
-    }
+    ) {}
 
     Broadcast(action: GameAction) {
         this.broadcastHandler(
@@ -91,20 +78,29 @@ class WorldInstance {
             return;
         }
 
+        const _player: Player = {
+            ...player,
+            hp: 100,
+            lastFireTS: 0,
+        };
+
+        this.BroadcastToPlayers({
+            g_type: "player_join",
+            player: _player,
+        } satisfies JoinWorld);
+
         this.players[player.id] = {
-            player,
+            player: _player,
             ws,
             candidateWorlds: [],
         };
 
         this.players[player.id].ws.on("close", () => {
             if (this.players[player.id]) {
-                console.log("Player disconnected");
+                console.log("Player disconnected: " + player.id);
                 delete this.players[player.id];
             }
         });
-
-        console.log("PLayer Added");
 
         ws.send(
             JSON.stringify({
@@ -172,13 +168,39 @@ class WorldInstance {
         );
 
         if (hitPointPlayer) {
-            return {
+            const fireResponse: FireActionResponse = {
                 type: "fire_response",
                 didHit: true,
                 playerId: action.playerId,
                 hitPlayer: hitPointPlayer.player as Player,
                 hitPosition: hitPointPlayer.point,
             };
+
+            const player = hitPointPlayer.player;
+
+            // send hit action to user
+            const hitAction: HitAction = {
+                g_type: "hit",
+                fireActionResponse: fireResponse,
+            };
+
+            this.BroadcastToPlayers(hitAction, ({ player }) => player.id !== action.playerId);
+
+            player.hp -= 40;
+            if (player.hp < 0) {
+                const dieAction: DieAction = {
+                    g_type: "die",
+                    playerId: player.id,
+                };
+
+                this.BroadcastToPlayers(dieAction);
+
+                this.players[player.id]?.ws.close();
+
+                delete this.players[player.id];
+            }
+
+            return fireResponse;
         }
 
         return null;
@@ -350,10 +372,22 @@ class WorldInstance {
         let worldObjects = Object.values(this.worlds);
 
         if (predicate) {
-            worldObjects.filter(predicate);
+            worldObjects = worldObjects.filter(predicate);
         }
 
         worldObjects.forEach(({ ws }) => {
+            ws.send(JSON.stringify(action));
+        });
+    }
+
+    BroadcastToPlayers(action: Action, predicate?: (w: (typeof this.players)[string]) => boolean) {
+        let playerObjects = Object.values(this.players);
+
+        if (predicate) {
+            playerObjects = playerObjects.filter(predicate);
+        }
+
+        playerObjects.forEach(({ ws }) => {
             ws.send(JSON.stringify(action));
         });
     }
