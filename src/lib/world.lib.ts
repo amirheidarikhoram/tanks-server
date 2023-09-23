@@ -432,18 +432,12 @@ class WorldInstance {
     }
 
     PlayerDiedInOtherWorld(playerId: string) {
-        console.log("player died in other world");
-
         this.BroadcastToPlayers({
             g_type: "die",
             playerId,
         } as DieAction);
 
-        console.log(this.players);
-
         if (this.players[playerId]) {
-            console.log("deleting user", this.players[playerId].player);
-
             this.players[playerId].ws.close();
             delete this.players[playerId];
         }
