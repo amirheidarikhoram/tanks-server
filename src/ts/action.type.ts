@@ -32,6 +32,11 @@ export interface JoinWorld {
     player: Player;
 }
 
+export interface PlayerDisconnect {
+    g_type: "player_disconnect";
+    playerId: Player["id"];
+}
+
 export interface ValidatePlayerState {
     g_type: "player_validate";
     playerId: Player["id"];
@@ -66,6 +71,7 @@ export interface DieAction {
 
 export type GameAction =
     | JoinWorld
+    | PlayerDisconnect
     | ValidatePlayerState
     | ValidatePlayerState
     | PlayerStateUpdate

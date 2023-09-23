@@ -25,6 +25,9 @@ export const Server = (port: number, world: WorldInstance) => {
                     case "player_join":
                         world.AddPlayer(_data.player, ws);
                         break;
+
+                    case "die":
+                        world.PlayerDiedInOtherWorld(_data.playerId);
                 }
             } else if ("type" in _data) {
                 switch (_data.type) {

@@ -12,6 +12,7 @@ import {
     JoinWorld,
     MoveAction,
     PlayerAction,
+    PlayerDisconnect,
     PlayerStateUpdate,
     Position2D,
     ServerAction,
@@ -69,7 +70,11 @@ class WorldInstance {
     }
 
     SendActionCreator(action: PlayerAction, response: GameAction | PlayerAction) {
-        this.players[action.playerId].ws.send(JSON.stringify(response));
+        if (this.players[action.playerId]?.ws) {
+            this.players[action.playerId].ws.send(JSON.stringify(response));
+        } else {
+            delete this.players[action.playerId];
+        }
     }
 
     AddPlayer(player: Player, ws: WebSocket) {
@@ -80,6 +85,14 @@ class WorldInstance {
 
         const _player: Player = {
             ...player,
+            // TODO: implement a solution to set initial position of new players, those are starting to play
+            // transform: {
+            //     ...player.transform,
+            //     position: [
+            //         (this.northwest[0] + this.southeast[0]) / 2,
+            //         (this.northwest[1] + this.southeast[1]) / 2,
+            //     ],
+            // },
             hp: 100,
             lastFireTS: 0,
         };
@@ -97,8 +110,11 @@ class WorldInstance {
 
         this.players[player.id].ws.on("close", () => {
             if (this.players[player.id]) {
-                console.log("Player disconnected: " + player.id);
                 delete this.players[player.id];
+                this.BroadcastToPlayers({
+                    g_type: "player_disconnect",
+                    playerId: player.id,
+                } as PlayerDisconnect);
             }
         });
 
@@ -111,6 +127,13 @@ class WorldInstance {
                     .filter((p) => p.id !== _player.id),
             } as IntroduceServer)
         );
+
+        // ws.send(
+        //     JSON.stringify({
+        //         g_type: "player_state_update",
+        //         player: _player,
+        //     } as PlayerStateUpdate)
+        // );
     }
 
     HandlePlayerMove(action: MoveAction) {
@@ -200,6 +223,7 @@ class WorldInstance {
                 };
 
                 this.BroadcastToPlayers(dieAction);
+                this.BroadcastToWorlds(dieAction);
 
                 this.players[player.id]?.ws.close();
 
@@ -307,11 +331,9 @@ class WorldInstance {
                 });
 
                 ws.on("message", function message(data) {
-                    const parsed = JSON.parse(data.toString()) as Action;
+                    const _data = JSON.parse(data.toString()) as Action;
 
-                    if ("s_type" in parsed) {
-                        const _data = { ...parsed } as ServerAction;
-
+                    if ("s_type" in _data) {
                         switch (_data.s_type) {
                             case "exchange_server_info_response":
                                 serverRef.worlds[_data.world.id] = {
@@ -330,6 +352,17 @@ class WorldInstance {
 
                             default:
                                 console.error("ERROR: not matched any");
+                                break;
+                        }
+                    } else if ("g_type" in _data) {
+                        switch (_data.g_type) {
+                            case "die":
+                                console.log("die action", _data);
+                                serverRef.PlayerDiedInOtherWorld(_data.playerId);
+                                break;
+
+                            default:
+                                console.error("ERROR: not matched any game action");
                                 break;
                         }
                     }
@@ -396,6 +429,24 @@ class WorldInstance {
         playerObjects.forEach(({ ws }) => {
             ws.send(JSON.stringify(action));
         });
+    }
+
+    PlayerDiedInOtherWorld(playerId: string) {
+        console.log("player died in other world");
+
+        this.BroadcastToPlayers({
+            g_type: "die",
+            playerId,
+        } as DieAction);
+
+        console.log(this.players);
+
+        if (this.players[playerId]) {
+            console.log("deleting user", this.players[playerId].player);
+
+            this.players[playerId].ws.close();
+            delete this.players[playerId];
+        }
     }
 }
 
