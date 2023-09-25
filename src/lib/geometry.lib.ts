@@ -78,10 +78,6 @@ export const bulletHitsPlayers = (
                 return intPoint1.distanceTo(firePoint) >= intPoint2.distanceTo(firePoint) ? 1 : -1;
             });
 
-            // console.log(ray);
-            // console.log(playerObject);
-            // console.log(intersectionPoints);
-
             return {
                 player,
                 point: intersectionPoints.at(0),
@@ -90,6 +86,8 @@ export const bulletHitsPlayers = (
         .filter((hitpoint) => !!hitpoint.point);
 
     hitPlayers.sort((hp1, hp2) => {
+        // FIXME: there is a bug in this
+        // box creation logic for objects does not work correctly
         return hp1.point.distanceTo(firePoint) >= hp2.point.distanceTo(firePoint) ? 1 : -1;
     });
 

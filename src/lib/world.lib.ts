@@ -143,15 +143,27 @@ class WorldInstance {
             return ActionError("Player not found");
         }
 
-        if (action.transform.position) {
+        if (
+            action.transform.position &&
+            Array.isArray(action.transform.position) &&
+            action.transform.position.length === 2
+        ) {
             player.transform.position = action.transform.position;
         }
 
-        if (action.transform.rotation) {
+        if (
+            action.transform.rotation &&
+            Array.isArray(action.transform.rotation) &&
+            action.transform.rotation.length === 4
+        ) {
             player.transform.rotation = action.transform.rotation;
         }
 
-        if (action.turretRotation) {
+        if (
+            action.turretRotation &&
+            Array.isArray(action.turretRotation) &&
+            action.turretRotation.length === 4
+        ) {
             player.turretRotation = action.turretRotation;
         }
 
@@ -191,10 +203,10 @@ class WorldInstance {
         const hitPointPlayer = bulletHitsPlayers(
             action.firePosition,
             action.fireDirection,
-            Object.values(this.players)
-                .map((p) => p.player)
-                .filter((p) => p.id !== action.playerId)
+            Object.values(this.players).map((p) => p.player)
         );
+
+        console.log({ hitPointPlayer });
 
         if (hitPointPlayer) {
             const fireResponse: FireActionResponse = {
@@ -205,15 +217,9 @@ class WorldInstance {
                 hitPosition: hitPointPlayer.point,
             };
 
+            this.BroadcastToPlayers(fireResponse);
+
             const player = hitPointPlayer.player;
-
-            // send hit action to user
-            const hitAction: HitAction = {
-                g_type: "hit",
-                fireActionResponse: fireResponse,
-            };
-
-            this.BroadcastToPlayers(hitAction, ({ player }) => player.id !== action.playerId);
 
             player.hp -= 40;
             if (player.hp < 0) {
@@ -237,6 +243,8 @@ class WorldInstance {
     }
 
     FireRequest(action: FireAction) {
+        this.BroadcastToPlayers(action, ({ player }) => player.id !== action.playerId);
+
         const fireResponse = this.LocalFireRequest(action);
 
         if (fireResponse) {
