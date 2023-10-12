@@ -206,8 +206,6 @@ class WorldInstance {
             Object.values(this.players).map((p) => p.player)
         );
 
-        console.log({ hitPointPlayer });
-
         if (hitPointPlayer) {
             const fireResponse: FireActionResponse = {
                 type: "fire_response",
@@ -220,7 +218,7 @@ class WorldInstance {
             this.BroadcastToPlayers(fireResponse);
 
             const player = hitPointPlayer.player;
-
+            
             player.hp -= 40;
             if (player.hp < 0) {
                 const dieAction: DieAction = {
